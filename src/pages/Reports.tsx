@@ -88,7 +88,7 @@ const Reports = () => {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-bold">Reports</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold">Reports</h1>
 
       <Tabs defaultValue="daily">
         <TabsList>
@@ -105,7 +105,7 @@ const Reports = () => {
                 <Download className="mr-2 h-4 w-4" /> Export CSV
               </Button>
             </CardHeader>
-            <CardContent className="p-0"><SalesTable data={dailySales} /></CardContent>
+            <CardContent className="p-0 overflow-x-auto"><SalesTable data={dailySales} /></CardContent>
           </Card>
         </TabsContent>
 
@@ -117,7 +117,7 @@ const Reports = () => {
                 <Download className="mr-2 h-4 w-4" /> Export CSV
               </Button>
             </CardHeader>
-            <CardContent className="p-0"><SalesTable data={monthlySales} /></CardContent>
+            <CardContent className="p-0 overflow-x-auto"><SalesTable data={monthlySales} /></CardContent>
           </Card>
         </TabsContent>
 
@@ -129,7 +129,7 @@ const Reports = () => {
                 <Download className="mr-2 h-4 w-4" /> Export CSV
               </Button>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-0 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>

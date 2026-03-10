@@ -97,8 +97,8 @@ const Products = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Products</h1>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl sm:text-3xl font-bold">Products</h1>
         <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditing(null); setForm({ name: "", category: "General", price: "0", quantity: "0", low_stock_threshold: "10", supplier_id: "" }); } }}>
           <DialogTrigger asChild>
             <Button><Plus className="mr-2 h-4 w-4" /> Add Product</Button>
@@ -133,8 +133,8 @@ const Products = () => {
       </div>
 
       <Card>
-        <CardContent className="p-0">
-          <Table>
+        <CardContent className="p-0 overflow-x-auto">
+          <Table className="min-w-[600px]">
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>

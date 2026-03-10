@@ -89,12 +89,12 @@ const Predictions = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">AI Demand Predictions</h1>
-          <p className="text-muted-foreground mt-1">Predict next week's demand and get reorder recommendations</p>
+          <h1 className="text-2xl sm:text-3xl font-bold">AI Demand Predictions</h1>
+          <p className="text-muted-foreground mt-1 text-sm">Predict next week's demand and get reorder recommendations</p>
         </div>
-        <Button onClick={generatePredictions} disabled={loading}>
+        <Button onClick={generatePredictions} disabled={loading} className="shrink-0">
           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Brain className="mr-2 h-4 w-4" />}
           {loading ? "Analyzing..." : "Generate Predictions"}
         </Button>
@@ -109,8 +109,8 @@ const Predictions = () => {
             </CardTitle>
             <CardDescription>Based on your last 30 days of sales data</CardDescription>
           </CardHeader>
-          <CardContent className="p-0">
-            <Table>
+          <CardContent className="p-0 overflow-x-auto">
+            <Table className="min-w-[500px]">
               <TableHeader>
                 <TableRow>
                   <TableHead>Product</TableHead>
