@@ -129,7 +129,7 @@ const Reports = () => {
                 <Download className="mr-2 h-4 w-4" /> Export CSV
               </Button>
             </CardHeader>
-            <CardContent className="p-0">
+            <CardContent className="p-0 overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
