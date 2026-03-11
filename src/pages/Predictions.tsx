@@ -48,7 +48,7 @@ const Predictions = () => {
 
       if (error) throw error;
       setPredictions(data.predictions || []);
-      toast({ title: "Predictions generated!" });
+      toast({ title: "AI predictions generated!", description: "Powered by Lovable AI" });
     } catch (err: any) {
       toast({ title: "Prediction failed", description: err.message, variant: "destructive" });
       // Fallback: simple statistical prediction
