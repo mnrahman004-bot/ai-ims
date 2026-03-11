@@ -15,6 +15,7 @@ type Prediction = {
   predicted_demand: number;
   reorder_quantity: number;
   risk_level: "low" | "medium" | "high";
+  reasoning?: string;
 };
 
 const Predictions = () => {
@@ -47,7 +48,7 @@ const Predictions = () => {
 
       if (error) throw error;
       setPredictions(data.predictions || []);
-      toast({ title: "Predictions generated!" });
+      toast({ title: "AI predictions generated!", description: "Powered by Lovable AI" });
     } catch (err: any) {
       toast({ title: "Prediction failed", description: err.message, variant: "destructive" });
       // Fallback: simple statistical prediction
@@ -118,27 +119,31 @@ const Predictions = () => {
                   <TableHead>Predicted Demand</TableHead>
                   <TableHead>Reorder Qty</TableHead>
                   <TableHead>Risk</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {predictions.map((p, i) => (
-                  <TableRow key={i}>
-                    <TableCell className="font-medium">{p.product_name}</TableCell>
-                    <TableCell>{p.current_stock}</TableCell>
-                    <TableCell>{p.predicted_demand}</TableCell>
-                    <TableCell className="font-medium">
-                      {p.reorder_quantity > 0 ? p.reorder_quantity : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={p.risk_level === "high" ? "destructive" : "secondary"}
-                        className={p.risk_level === "medium" ? "bg-[hsl(var(--warning))] text-[hsl(var(--warning-foreground))]" : ""}
-                      >
-                        {p.risk_level}
-                      </Badge>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                  <TableHead className="hidden md:table-cell">AI Reasoning</TableHead>
+                 </TableRow>
+               </TableHeader>
+               <TableBody>
+                 {predictions.map((p, i) => (
+                   <TableRow key={i}>
+                     <TableCell className="font-medium">{p.product_name}</TableCell>
+                     <TableCell>{p.current_stock}</TableCell>
+                     <TableCell>{p.predicted_demand}</TableCell>
+                     <TableCell className="font-medium">
+                       {p.reorder_quantity > 0 ? p.reorder_quantity : "—"}
+                     </TableCell>
+                     <TableCell>
+                       <Badge
+                         variant={p.risk_level === "high" ? "destructive" : "secondary"}
+                         className={p.risk_level === "medium" ? "bg-[hsl(var(--warning))] text-[hsl(var(--warning-foreground))]" : ""}
+                       >
+                         {p.risk_level}
+                       </Badge>
+                     </TableCell>
+                     <TableCell className="hidden md:table-cell text-xs text-muted-foreground max-w-[250px] truncate" title={p.reasoning}>
+                       {p.reasoning || "—"}
+                     </TableCell>
+                   </TableRow>
+                 ))}
               </TableBody>
             </Table>
           </CardContent>
