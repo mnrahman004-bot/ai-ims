@@ -58,6 +58,56 @@ export type Database = {
           },
         ]
       }
+      prediction_history: {
+        Row: {
+          created_at: string
+          current_stock: number
+          id: string
+          predicted_demand: number
+          prediction_date: string
+          product_id: string
+          product_name: string
+          reasoning: string | null
+          reorder_quantity: number
+          risk_level: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_stock: number
+          id?: string
+          predicted_demand: number
+          prediction_date?: string
+          product_id: string
+          product_name: string
+          reasoning?: string | null
+          reorder_quantity: number
+          risk_level: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_stock?: number
+          id?: string
+          predicted_demand?: number
+          prediction_date?: string
+          product_id?: string
+          product_name?: string
+          reasoning?: string | null
+          reorder_quantity?: number
+          risk_level?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prediction_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           category: string
