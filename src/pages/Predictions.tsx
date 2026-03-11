@@ -15,6 +15,7 @@ type Prediction = {
   predicted_demand: number;
   reorder_quantity: number;
   risk_level: "low" | "medium" | "high";
+  reasoning?: string;
 };
 
 const Predictions = () => {
