@@ -48,18 +48,26 @@ serve(async (req) => {
       };
     });
 
-    const systemPrompt = `You are an inventory demand forecasting AI. Analyze sales data and predict next week's demand for each product. Consider trends, seasonality patterns, and stock levels. Return predictions using the provided tool.`;
+    const systemPrompt = `You are an inventory demand forecasting AI that uses a Random Forest ensemble approach. For each product, simulate multiple independent "decision trees" that each analyze different feature subsets:
 
-    const userPrompt = `Analyze the following inventory and sales data from the last 30 days and predict demand for the next 7 days.
+Tree 1 - Trend Analysis: Focus on week-over-week sales velocity changes (sold_last_7d vs sold_prior_7d).
+Tree 2 - Stock Pressure: Analyze current_stock relative to low_stock_threshold and recent burn rate.
+Tree 3 - Volume Pattern: Use total_sold_30d and sale_count to detect consistent vs bursty demand.
+Tree 4 - Seasonality Heuristic: Consider the current time of year/month and any cyclic patterns implied by the data distribution.
+Tree 5 - Safety Stock Model: Apply a service-level factor (95%) to the demand variance.
+
+Aggregate predictions across all trees using majority voting for risk_level and averaged estimates for demand/reorder quantities. Explain which trees contributed most to each prediction. Return results using the provided tool.`;
+
+    const userPrompt = `Using the Random Forest ensemble method described above, analyze the following 30-day inventory and sales data and predict demand for the next 7 days.
 
 Product data:
 ${JSON.stringify(productSummaries, null, 2)}
 
-For each product, determine:
-1. predicted_demand: estimated units needed for the next 7 days
-2. reorder_quantity: how many units to reorder (consider current stock and a 2-week buffer)
-3. risk_level: "high" if stock is at or below threshold, "medium" if within 2x threshold, "low" otherwise
-4. reasoning: brief explanation of the prediction`;
+For each product, run all 5 decision trees and aggregate:
+1. predicted_demand: averaged estimate across trees for units needed in the next 7 days
+2. reorder_quantity: how many units to reorder (consider current stock, predicted demand, and a 2-week safety buffer)
+3. risk_level: majority vote across trees — "high" if stock is at or below threshold, "medium" if within 2x threshold, "low" otherwise
+4. reasoning: explain which decision trees were most influential and their individual signals`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
