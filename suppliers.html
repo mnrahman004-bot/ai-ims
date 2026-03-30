@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suppliers — StockSense IMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<script src="/static/js/app.js"></script>
+<script src="/static/js/layout.js"></script>
+
+<div class="modal-overlay" id="supplier-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h4>🏭 Add Supplier</h4>
+      <button onclick="closeModal('supplier-modal')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Supplier Name *</label>
+        <input type="text" class="form-control" id="s-name" placeholder="e.g. TechSupplies Co.">
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Contact Number</label>
+          <input type="text" class="form-control" id="s-contact" placeholder="+91-XXXXXXXXXX">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-control" id="s-email" placeholder="contact@supplier.com">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Address</label>
+        <input type="text" class="form-control" id="s-address" placeholder="City, State">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('supplier-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="addSupplier()">💾 Add Supplier</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(async () => {
+  await checkAuth();
+  renderLayout('/suppliers', '🏭 Suppliers', `
+    <div class="actions-bar">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Search suppliers...">
+      </div>
+      <button class="btn btn-primary" onclick="openModal('supplier-modal')">➕ Add Supplier</button>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        Supplier Directory
+        <span id="supplier-count" class="badge badge-info">0</span>
+      </div>
+      <div class="table-wrapper">
+        <table id="suppliers-table">
+          <thead><tr>
+            <th>#</th><th>Name</th><th>Contact</th><th>Email</th><th>Address</th><th>Products</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="suppliers-body">
+            <tr><td colspan="7" style="text-align:center;padding:40px;"><div class="spinner" style="margin:auto;"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `);
+  filterTable('search-input', 'suppliers-table');
+  loadSuppliers();
+})();
+
+async function loadSuppliers() {
+  const [sr, pr] = await Promise.all([apiFetch('/suppliers'), apiFetch('/products')]);
+  if (!sr || !sr.ok) return;
+  const suppliers = sr.data;
+  const products = pr && pr.ok ? pr.data : [];
+  document.getElementById('supplier-count').textContent = suppliers.length;
+  const body = document.getElementById('suppliers-body');
+  if (!suppliers.length) {
+    body.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="icon">🏭</div><h4>No suppliers yet</h4><p>Add your first supplier.</p></div></td></tr>`;
+    return;
+  }
+  body.innerHTML = suppliers.map(s => {
+    const count = products.filter(p => p.supplier_id == s.id).length;
+    return `
+    <tr>
+      <td><span class="badge badge-muted">#${s.id}</span></td>
+      <td><strong>${s.name}</strong></td>
+      <td>${s.contact || '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td>${s.email || '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td>${s.address || '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td><span class="badge badge-info">${count} products</span></td>
+      <td>
+        <button class="btn btn-sm btn-danger" onclick="deleteSupplier(${s.id}, '${s.name}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function addSupplier() {
+  const name = document.getElementById('s-name').value.trim();
+  if (!name) { showToast('Supplier name is required', 'error'); return; }
+  const r = await apiFetch('/suppliers', {
+    method: 'POST',
+    body: JSON.stringify({
+      name,
+      contact: document.getElementById('s-contact').value,
+      email: document.getElementById('s-email').value,
+      address: document.getElementById('s-address').value,
+    })
+  });
+  if (r && r.ok) {
+    showToast('Supplier added!', 'success');
+    closeModal('supplier-modal');
+    document.getElementById('s-name').value = '';
+    document.getElementById('s-contact').value = '';
+    document.getElementById('s-email').value = '';
+    document.getElementById('s-address').value = '';
+    loadSuppliers();
+  } else showToast('Failed to add supplier', 'error');
+}
+
+async function deleteSupplier(id, name) {
+  if (!confirm(`Delete supplier "${name}"?`)) return;
+  const r = await apiFetch(`/suppliers/${id}`, { method: 'DELETE' });
+  if (r && r.ok) { showToast('Supplier deleted', 'success'); loadSuppliers(); }
+  else showToast('Failed to delete', 'error');
+}
+</script>
+</body>
+</html>

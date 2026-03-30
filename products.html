@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Products — StockSense IMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+<div id="toast-container"></div>
+<script src="/static/js/app.js"></script>
+<script src="/static/js/layout.js"></script>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="product-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h4 id="modal-title">Add Product</h4>
+      <button onclick="closeModal('product-modal')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="product-id">
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Product Name *</label>
+          <input type="text" class="form-control" id="p-name" placeholder="e.g. Wireless Mouse">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Category *</label>
+          <select class="form-select" id="p-category">
+            <option>Electronics</option>
+            <option>Stationery</option>
+            <option>Home & Office</option>
+            <option>Health</option>
+            <option>Food & Beverage</option>
+            <option>Clothing</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Price (₹) *</label>
+          <input type="number" class="form-control" id="p-price" step="0.01" min="0" placeholder="0.00">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Quantity *</label>
+          <input type="number" class="form-control" id="p-quantity" min="0" placeholder="0">
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Low Stock Threshold</label>
+          <input type="number" class="form-control" id="p-threshold" min="1" value="10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Supplier</label>
+          <select class="form-select" id="p-supplier">
+            <option value="">-- Select Supplier --</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('product-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveProduct()">💾 Save Product</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let allProducts = [];
+let suppliers = [];
+
+(async () => {
+  await checkAuth();
+  renderLayout('/products', '📦 Products', `
+    <div class="actions-bar">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Search products...">
+      </div>
+      <button class="btn btn-primary" onclick="openAddModal()">➕ Add Product</button>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        Product Inventory
+        <span id="product-count" class="badge badge-info">0 items</span>
+      </div>
+      <div class="table-wrapper">
+        <table id="products-table">
+          <thead><tr>
+            <th>#</th><th>Name</th><th>Category</th>
+            <th>Price</th><th>Stock</th><th>Supplier</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="products-body">
+            <tr><td colspan="7" style="text-align:center;padding:40px;"><div class="spinner" style="margin:auto;"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `);
+  filterTable('search-input', 'products-table');
+  await loadSuppliers();
+  await loadProducts();
+})();
+
+async function loadSuppliers() {
+  const r = await apiFetch('/suppliers');
+  if (r && r.ok) {
+    suppliers = r.data;
+    const sel = document.getElementById('p-supplier');
+    if (sel) {
+      sel.innerHTML = '<option value="">-- Select Supplier --</option>';
+      suppliers.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.name}</option>`);
+    }
+  }
+}
+
+async function loadProducts() {
+  const r = await apiFetch('/products');
+  if (!r || !r.ok) return;
+  allProducts = r.data;
+  document.getElementById('product-count').textContent = allProducts.length + ' items';
+  const body = document.getElementById('products-body');
+  if (!allProducts.length) {
+    body.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="icon">📦</div><h4>No products yet</h4><p>Add your first product to get started.</p></div></td></tr>`;
+    return;
+  }
+  body.innerHTML = allProducts.map(p => `
+    <tr>
+      <td><span class="badge badge-muted">#${p.id}</span></td>
+      <td><strong>${p.name}</strong></td>
+      <td><span class="badge badge-info">${p.category || 'N/A'}</span></td>
+      <td>${formatCurrency(p.price)}</td>
+      <td>${stockBadge(p.quantity, p.low_stock_threshold)}</td>
+      <td>${p.supplier_name || '<span style="color:var(--text-muted)">—</span>'}</td>
+      <td>
+        <button class="btn btn-sm btn-secondary" onclick='openEditModal(${JSON.stringify(p)})'>✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id}, '${p.name}')">🗑️</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function openAddModal() {
+  document.getElementById('modal-title').textContent = 'Add Product';
+  document.getElementById('product-id').value = '';
+  document.getElementById('p-name').value = '';
+  document.getElementById('p-price').value = '';
+  document.getElementById('p-quantity').value = '';
+  document.getElementById('p-threshold').value = '10';
+  document.getElementById('p-category').value = 'Electronics';
+  document.getElementById('p-supplier').value = '';
+  openModal('product-modal');
+}
+
+function openEditModal(p) {
+  document.getElementById('modal-title').textContent = 'Edit Product';
+  document.getElementById('product-id').value = p.id;
+  document.getElementById('p-name').value = p.name;
+  document.getElementById('p-price').value = p.price;
+  document.getElementById('p-quantity').value = p.quantity;
+  document.getElementById('p-threshold').value = p.low_stock_threshold;
+  document.getElementById('p-category').value = p.category || 'Electronics';
+  document.getElementById('p-supplier').value = p.supplier_id || '';
+  openModal('product-modal');
+}
+
+async function saveProduct() {
+  const id = document.getElementById('product-id').value;
+  const payload = {
+    name: document.getElementById('p-name').value.trim(),
+    category: document.getElementById('p-category').value,
+    price: parseFloat(document.getElementById('p-price').value),
+    quantity: parseInt(document.getElementById('p-quantity').value),
+    low_stock_threshold: parseInt(document.getElementById('p-threshold').value) || 10,
+    supplier_id: document.getElementById('p-supplier').value || null,
+  };
+  if (!payload.name || isNaN(payload.price) || isNaN(payload.quantity)) {
+    showToast('Please fill all required fields', 'error'); return;
+  }
+  const url = id ? `/products/${id}` : '/products';
+  const method = id ? 'PUT' : 'POST';
+  const r = await apiFetch(url, { method, body: JSON.stringify(payload) });
+  if (r && r.ok) {
+    showToast(id ? 'Product updated!' : 'Product added!', 'success');
+    closeModal('product-modal');
+    loadProducts();
+  } else {
+    showToast(r?.data?.error || 'Failed to save', 'error');
+  }
+}
+
+async function deleteProduct(id, name) {
+  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  const r = await apiFetch(`/products/${id}`, { method: 'DELETE' });
+  if (r && r.ok) { showToast('Product deleted', 'success'); loadProducts(); }
+  else showToast('Failed to delete', 'error');
+}
+</script>
+</body>
+</html>
