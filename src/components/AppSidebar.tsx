@@ -72,7 +72,24 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
         })}
       </nav>
 
-      <div className="border-t border-sidebar-border p-3">
+      <div className="border-t border-sidebar-border p-3 space-y-2">
+        <div className="flex items-center gap-2 px-3 py-1.5">
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold ${
+            isAdmin
+              ? "bg-destructive/10 text-destructive"
+              : isSupervisor
+              ? "bg-primary/10 text-primary"
+              : "bg-secondary text-secondary-foreground"
+          }`}>
+            {isAdmin ? (
+              <><ShieldCheck className="h-3 w-3" /> Admin</>
+            ) : isSupervisor ? (
+              <><Shield className="h-3 w-3" /> Supervisor</>
+            ) : (
+              <><User className="h-3 w-3" /> User</>
+            )}
+          </span>
+        </div>
         <button
           onClick={signOut}
           className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
