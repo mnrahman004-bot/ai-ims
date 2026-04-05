@@ -13,6 +13,9 @@ import {
   Menu,
   X,
   Users,
+  Shield,
+  ShieldCheck,
+  User,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
@@ -34,7 +37,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth();
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isSupervisor } = useUserRole();
 
   const handleNav = (path: string) => {
     navigate(path);
