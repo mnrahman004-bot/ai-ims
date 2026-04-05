@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,7 @@ type Product = {
 
 const Products = () => {
   const { user } = useAuth();
+  const { isSupervisor } = useUserRole();
   const { toast } = useToast();
   const [products, setProducts] = useState<Product[]>([]);
   const [suppliers, setSuppliers] = useState<{ id: string; name: string }[]>([]);
@@ -99,7 +101,8 @@ const Products = () => {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl sm:text-3xl font-bold">Products</h1>
-        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditing(null); setForm({ name: "", category: "General", price: "0", quantity: "0", low_stock_threshold: "10", supplier_id: "" }); } }}>
+          {!isSupervisor && (
+          <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditing(null); setForm({ name: "", category: "General", price: "0", quantity: "0", low_stock_threshold: "10", supplier_id: "" }); } }}>
           <DialogTrigger asChild>
             <Button><Plus className="mr-2 h-4 w-4" /> Add Product</Button>
           </DialogTrigger>
@@ -130,6 +133,7 @@ const Products = () => {
             </div>
           </DialogContent>
         </Dialog>
+          )}
       </div>
 
       <Card>
@@ -158,8 +162,12 @@ const Products = () => {
                   </TableCell>
                   <TableCell>{p.suppliers?.name || "—"}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => handleEdit(p)}><Pencil className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    {!isSupervisor && (
+                      <>
+                        <Button variant="ghost" size="icon" onClick={() => handleEdit(p)}><Pencil className="h-4 w-4" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => handleDelete(p.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import {
   LayoutDashboard,
   Package,
@@ -11,6 +12,7 @@ import {
   Boxes,
   Menu,
   X,
+  Users,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
@@ -25,12 +27,14 @@ const navItems = [
   { label: "Inventory", icon: Boxes, path: "/inventory" },
   { label: "Reports", icon: BarChart3, path: "/reports" },
   { label: "AI Predictions", icon: Brain, path: "/predictions" },
-];
+  { label: "User Management", icon: Users, path: "/users", adminOnly: true },
+] as const;
 
 const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { signOut } = useAuth();
+  const { isAdmin } = useUserRole();
 
   const handleNav = (path: string) => {
     navigate(path);
@@ -49,7 +53,7 @@ const SidebarContent = ({ onNavigate }: { onNavigate?: () => void }) => {
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {navItems.map((item) => {
+        {navItems.filter(item => !('adminOnly' in item && item.adminOnly) || isAdmin).map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <button
