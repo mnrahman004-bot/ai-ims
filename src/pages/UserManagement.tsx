@@ -57,7 +57,7 @@ const UserManagement = () => {
     if (role !== "none") {
       const { error } = await supabase.from("user_roles").insert({
         user_id: userId,
-        role,
+        role: role as "admin" | "supervisor",
       });
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
