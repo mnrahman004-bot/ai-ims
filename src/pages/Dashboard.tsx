@@ -54,7 +54,7 @@ const Dashboard = () => {
     { title: "Total Products", value: stats.totalProducts, icon: Package, color: "text-primary" },
     { title: "Low Stock", value: stats.lowStock, icon: AlertTriangle, color: "text-[hsl(var(--warning))]" },
     { title: "Today's Sales", value: stats.todaySales, icon: ShoppingCart, color: "text-[hsl(var(--success))]" },
-    { title: "Today's Revenue", value: `$${stats.todayRevenue.toFixed(2)}`, icon: DollarSign, color: "text-primary" },
+    { title: "Today's Revenue", value: `₹${stats.todayRevenue.toFixed(2)}`, icon: DollarSign, color: "text-primary" },
   ];
 
   return (

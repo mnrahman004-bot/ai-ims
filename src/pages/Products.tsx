@@ -154,7 +154,7 @@ const Products = () => {
                 <TableRow key={p.id}>
                   <TableCell className="font-medium">{p.name}</TableCell>
                   <TableCell><Badge variant="secondary">{p.category}</Badge></TableCell>
-                  <TableCell>${Number(p.price).toFixed(2)}</TableCell>
+                  <TableCell>₹{Number(p.price).toFixed(2)}</TableCell>
                   <TableCell>
                     <Badge variant={p.quantity <= p.low_stock_threshold ? "destructive" : "secondary"}>
                       {p.quantity}

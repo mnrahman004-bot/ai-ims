@@ -86,8 +86,8 @@ INVOICE
 Date: ${format(new Date(sale.sale_date), "PPP")}
 Product: ${sale.products?.name}
 Quantity: ${sale.quantity}
-Unit Price: $${Number(sale.unit_price).toFixed(2)}
-Total: $${Number(sale.total_price).toFixed(2)}
+Unit Price: ₹${Number(sale.unit_price).toFixed(2)}
+Total: ₹${Number(sale.total_price).toFixed(2)}
 ====================
     `.trim();
 
@@ -118,7 +118,7 @@ Total: $${Number(sale.total_price).toFixed(2)}
                   <SelectContent>
                     {products.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
-                        {p.name} (Stock: {p.quantity}, ${Number(p.price).toFixed(2)})
+                        {p.name} (Stock: {p.quantity}, ₹{Number(p.price).toFixed(2)})
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -127,7 +127,7 @@ Total: $${Number(sale.total_price).toFixed(2)}
               <div><Label>Quantity</Label><Input type="number" min="1" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} /></div>
               {form.product_id && (
                 <div className="rounded-lg bg-muted p-3 text-sm">
-                  <strong>Total:</strong> ${(parseInt(form.quantity || "0") * Number(products.find((p) => p.id === form.product_id)?.price || 0)).toFixed(2)}
+                  <strong>Total:</strong> ₹{(parseInt(form.quantity || "0") * Number(products.find((p) => p.id === form.product_id)?.price || 0)).toFixed(2)}
                 </div>
               )}
               <Button onClick={handleSale} className="w-full">Record Sale</Button>
@@ -155,8 +155,8 @@ Total: $${Number(sale.total_price).toFixed(2)}
                   <TableCell>{format(new Date(s.sale_date), "MMM dd, yyyy")}</TableCell>
                   <TableCell className="font-medium">{s.products?.name}</TableCell>
                   <TableCell>{s.quantity}</TableCell>
-                  <TableCell>${Number(s.unit_price).toFixed(2)}</TableCell>
-                  <TableCell className="font-medium">${Number(s.total_price).toFixed(2)}</TableCell>
+                  <TableCell>₹{Number(s.unit_price).toFixed(2)}</TableCell>
+                  <TableCell className="font-medium">₹{Number(s.total_price).toFixed(2)}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="icon" onClick={() => generateInvoice(s)}>
                       <FileText className="h-4 w-4" />
