@@ -76,7 +76,7 @@ const Reports = () => {
             <TableCell>{format(new Date(s.sale_date), "MMM dd, HH:mm")}</TableCell>
             <TableCell className="font-medium">{s.products?.name}</TableCell>
             <TableCell>{s.quantity}</TableCell>
-            <TableCell>${Number(s.total_price).toFixed(2)}</TableCell>
+            <TableCell>₹{Number(s.total_price).toFixed(2)}</TableCell>
           </TableRow>
         ))}
         {data.length === 0 && (
@@ -143,7 +143,7 @@ const Reports = () => {
                     <TableRow key={i}>
                       <TableCell className="font-medium">{p.name}</TableCell>
                       <TableCell>{p.qty}</TableCell>
-                      <TableCell>${p.revenue.toFixed(2)}</TableCell>
+                      <TableCell>₹{p.revenue.toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
                   {productSales.length === 0 && (
