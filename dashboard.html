@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — StockSense IMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <script src="/static/js/app.js"></script>
+  <script src="/static/js/layout.js"></script>
+  <script>
+  (async () => {
+    await checkAuth();
+    renderLayout('/dashboard', '📊 Dashboard', `
+      <div class="stats-grid" id="stats-grid">
+        <div class="loading-center"><div class="spinner"></div></div>
+      </div>
+      <div class="grid-2" style="margin-bottom:24px;">
+        <div class="card">
+          <div class="card-header">📈 Sales (Last 7 Days)</div>
+          <div class="card-body"><canvas id="salesChart" height="220"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-header">🥧 Revenue by Category</div>
+          <div class="card-body"><canvas id="catChart" height="220"></canvas></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          ⚠️ Low Stock Alerts
+          <a href="/products" class="btn btn-secondary btn-sm">View All Products</a>
+        </div>
+        <div class="card-body" id="low-stock-body">
+          <div class="spinner"></div>
+        </div>
+      </div>
+    `);
+
+    loadDashboard();
+  })();
+
+  let salesChart, catChart;
+
+  async function loadDashboard() {
+    const r = await apiFetch('/dashboard');
+    if (!r || !r.ok) return;
+    const d = r.data;
+
+    // Stats
+    document.getElementById('stats-grid').innerHTML = `
+      <div class="stat-card blue">
+        <div class="stat-icon">📦</div>
+        <div class="stat-value">${d.total_products}</div>
+        <div class="stat-label">Total Products</div>
+      </div>
+      <div class="stat-card red">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-value">${d.low_stock_count}</div>
+        <div class="stat-label">Low Stock Items</div>
+      </div>
+      <div class="stat-card green">
+        <div class="stat-icon">💰</div>
+        <div class="stat-value">${formatCurrency(d.today_sales)}</div>
+        <div class="stat-label">Today's Sales</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="stat-icon">🏭</div>
+        <div class="stat-value">${d.total_suppliers}</div>
+        <div class="stat-label">Suppliers</div>
+      </div>
+    `;
+
+    // Sales chart
+    const chartColors = { grid: 'rgba(255,255,255,0.05)', text: '#8892b0' };
+    if (salesChart) salesChart.destroy();
+    salesChart = new Chart(document.getElementById('salesChart'), {
+      type: 'bar',
+      data: {
+        labels: d.chart_data.map(x => {
+          const dt = new Date(x.date);
+          return dt.toLocaleDateString('en-IN', { month: 'short', day: 'numeric' });
+        }),
+        datasets: [{
+          label: 'Revenue (₹)',
+          data: d.chart_data.map(x => x.amount),
+          backgroundColor: 'rgba(233,69,96,0.3)',
+          borderColor: '#e94560',
+          borderWidth: 2,
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: chartColors.grid }, ticks: { color: chartColors.text } },
+          y: { grid: { color: chartColors.grid }, ticks: { color: chartColors.text, callback: v => '₹' + v.toLocaleString() } }
+        }
+      }
+    });
+
+    // Category chart
+    const catColors = ['#e94560','#38bdf8','#00d68f','#ffb347','#a855f7','#f43f5e'];
+    if (catChart) catChart.destroy();
+    catChart = new Chart(document.getElementById('catChart'), {
+      type: 'doughnut',
+      data: {
+        labels: d.category_data.map(x => x.category || 'Uncategorized'),
+        datasets: [{
+          data: d.category_data.map(x => x.revenue),
+          backgroundColor: catColors,
+          borderColor: '#1e2447',
+          borderWidth: 3,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { color: '#8892b0', padding: 14, font: { size: 12 } } }
+        }
+      }
+    });
+
+    // Low stock table
+    const body = document.getElementById('low-stock-body');
+    if (!d.low_stock_products.length) {
+      body.innerHTML = `<div class="empty-state"><div class="icon">✅</div><h4>All items well stocked!</h4><p>No low stock alerts at this time.</p></div>`;
+      return;
+    }
+    body.innerHTML = `
+      <table><thead><tr>
+        <th>Product</th><th>Current Stock</th><th>Threshold</th><th>Action</th>
+      </tr></thead><tbody>
+        ${d.low_stock_products.map(p => `
+          <tr>
+            <td><strong>${p.name}</strong></td>
+            <td>${stockBadge(p.quantity, p.low_stock_threshold)}</td>
+            <td><span class="badge badge-muted">${p.low_stock_threshold}</span></td>
+            <td><a href="/inventory" class="btn btn-sm btn-secondary">Restock</a></td>
+          </tr>
+        `).join('')}
+      </tbody></table>`;
+  }
+  </script>
+</body>
+</html>

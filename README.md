@@ -1,73 +1,201 @@
-# Welcome to your Lovable project
+# 📦 StockSense — AI-Powered Inventory Management System
 
-## Project info
+A full-stack inventory management system built with Flask, SQLite, and Scikit-learn for a small retail shop.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+---
 
-## How can I edit this code?
+## 🚀 Features
 
-There are several ways of editing your application.
+| Module | Features |
+|--------|----------|
+| 🔐 Auth | Admin login, session management, secure passwords |
+| 📊 Dashboard | Stats, low stock alerts, sales charts |
+| 📦 Products | Add/Edit/Delete, category, supplier linking |
+| 🗄️ Inventory | Stock control, restock, damage tracking, logs |
+| 💳 Sales | Record sales, auto stock deduction, invoices |
+| 🏭 Suppliers | Add/manage suppliers, link to products |
+| 📈 Reports | Daily, monthly, product reports + CSV export |
+| 🤖 AI | ML demand prediction, reorder suggestions |
 
-**Use Lovable**
+---
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## 🛠️ Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: HTML5, CSS3, Vanilla JS, Chart.js
+- **Backend**: Python Flask
+- **Database**: SQLite
+- **ML**: Scikit-learn (Linear Regression)
+- **Fonts**: Syne + DM Sans
 
-**Use your preferred IDE**
+---
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## ⚡ Quick Start
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Prerequisites
+- Python 3.9+
+- pip
 
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### 1. Clone the Repository
+```bash
+git clone https://github.com/yourusername/inventory-management-system.git
+cd inventory-management-system
 ```
 
-**Edit a file directly in GitHub**
+### 2. Create Virtual Environment
+```bash
+python -m venv venv
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+# Windows
+venv\Scripts\activate
 
-**Use GitHub Codespaces**
+# Mac/Linux
+source venv/bin/activate
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### 3. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
 
-## What technologies are used for this project?
+### 4. Run the Application
+```bash
+cd backend
+python app.py
+```
 
-This project is built with:
+The app will:
+- ✅ Create the SQLite database automatically
+- ✅ Seed sample data (15 products, suppliers, 90 days of sales history)
+- ✅ Start the server on http://localhost:5000
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### 5. Login
+```
+URL:      http://localhost:5000
+Username: admin
+Password: admin123
+```
 
-## How can I deploy this project?
+---
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## 📁 Project Structure
 
-## Can I connect a custom domain to my Lovable project?
+```
+inventory_management_system/
+├── backend/
+│   ├── app.py              # Flask app & routes registration
+│   ├── models.py           # DB init, seed data
+│   ├── routes.py           # All API endpoints
+│   └── demand_prediction.py # ML demand forecasting
+├── frontend/
+│   ├── login.html
+│   ├── dashboard.html
+│   ├── products.html
+│   ├── inventory.html
+│   ├── sales.html
+│   ├── suppliers.html
+│   ├── reports.html
+│   ├── predict.html
+│   └── static/
+│       ├── css/style.css
+│       └── js/
+│           ├── app.js      # Shared utilities
+│           └── layout.js   # Sidebar/topbar components
+├── database/
+│   └── inventory.db        # Auto-created on first run
+├── requirements.txt
+└── README.md
+```
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🔌 API Reference
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/login` | Authenticate user |
+| POST | `/api/logout` | Logout |
+| GET | `/api/dashboard` | Dashboard stats |
+| GET | `/api/products` | List all products |
+| POST | `/api/products` | Add product |
+| PUT | `/api/products/<id>` | Update product |
+| DELETE | `/api/products/<id>` | Delete product |
+| POST | `/api/inventory/update` | Update stock level |
+| GET | `/api/inventory/logs` | Get stock change logs |
+| GET | `/api/sales` | List sales |
+| POST | `/api/sales` | Record a sale |
+| GET | `/api/sales/<id>/invoice` | Get invoice |
+| GET | `/api/suppliers` | List suppliers |
+| POST | `/api/suppliers` | Add supplier |
+| DELETE | `/api/suppliers/<id>` | Delete supplier |
+| GET | `/api/reports/daily` | Daily sales report |
+| GET | `/api/reports/monthly` | Monthly report |
+| GET | `/api/reports/products` | Product report |
+| GET | `/api/reports/export` | Export CSV |
+| GET | `/api/predict` | AI demand predictions |
+
+---
+
+## 🗄️ Database Schema
+
+```sql
+users          -- id, username, password (hashed), role
+products       -- id, name, category, price, quantity, threshold, supplier_id
+suppliers      -- id, name, contact, email, address
+sales          -- id, product_id, quantity_sold, unit_price, total_price, sale_date
+inventory_logs -- id, product_id, change_type, quantity_change, previous/new_qty, note
+```
+
+---
+
+## 🤖 ML Module
+
+The AI prediction module (`demand_prediction.py`):
+1. Pulls 90 days of historical sales from SQLite
+2. Engineers features: day index, day of week, 7-day rolling average
+3. Trains a **Linear Regression** model per product
+4. Predicts demand for the next 7 days
+5. Calculates reorder quantity = `(predicted × 1.5 safety factor) - current_stock + threshold`
+6. Returns status: **Critical**, **Low**, or **Sufficient**
+
+---
+
+## ☁️ Deployment on Render
+
+### 1. Push to GitHub
+```bash
+git init
+git add .
+git commit -m "Initial commit"
+git remote add origin https://github.com/yourusername/ims.git
+git push -u origin main
+```
+
+### 2. Deploy on Render.com
+1. Go to [render.com](https://render.com) → New → Web Service
+2. Connect your GitHub repo
+3. Set:
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `cd backend && python app.py`
+   - **Environment**: Python 3
+4. Add environment variable: `FLASK_ENV=production`
+5. Click **Deploy**
+
+> ⚠️ For production, replace SQLite with PostgreSQL and use `gunicorn`:
+> ```
+> gunicorn -w 4 -b 0.0.0.0:$PORT backend.app:app
+> ```
+
+---
+
+## 🔒 Security Notes
+
+- Passwords are hashed with Werkzeug's `generate_password_hash` (PBKDF2)
+- Sessions are server-side with a secret key
+- All API routes require authentication
+- In production, change `app.secret_key` to a random secure value
+
+---
+
+## 📝 License
+
+MIT License — free to use, modify, and distribute.

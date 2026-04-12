@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales — StockSense IMS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <style>
+    .invoice-box {
+      background: #fff; color: #1a1a2e;
+      padding: 40px; border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .invoice-box h2 { font-family: 'Syne', sans-serif; color: #e94560; font-size: 28px; }
+    .invoice-box table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    .invoice-box th { background: #1a1a2e; color: #fff; padding: 10px 14px; font-size: 12px; text-align: left; }
+    .invoice-box td { padding: 10px 14px; border-bottom: 1px solid #eee; font-size: 13px; }
+    .invoice-total { font-size: 20px; font-weight: 700; text-align: right; margin-top: 16px; color: #e94560; }
+  </style>
+</head>
+<body>
+<div id="toast-container"></div>
+<script src="/static/js/app.js"></script>
+<script src="/static/js/layout.js"></script>
+
+<!-- Record Sale Modal -->
+<div class="modal-overlay" id="sale-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h4>💳 Record New Sale</h4>
+      <button onclick="closeModal('sale-modal')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Product *</label>
+        <select class="form-select" id="sale-product" onchange="updateSalePreview()">
+          <option value="">-- Select Product --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Quantity *</label>
+        <input type="number" class="form-control" id="sale-qty" min="1" value="1" oninput="updateSalePreview()">
+      </div>
+      <div id="sale-preview" style="display:none;padding:14px;background:var(--surface2);border-radius:8px;margin-top:8px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span style="color:var(--text-muted);">Unit Price:</span>
+          <span id="preview-unit">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
+          <span style="color:var(--text-muted);">Available Stock:</span>
+          <span id="preview-stock">—</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:700;">
+          <span>Total:</span>
+          <span id="preview-total" style="color:var(--accent);">—</span>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('sale-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="recordSale()">✅ Confirm Sale</button>
+    </div>
+  </div>
+</div>
+
+<!-- Invoice Modal -->
+<div class="modal-overlay" id="invoice-modal">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-header">
+      <h4>🧾 Invoice</h4>
+      <button onclick="closeModal('invoice-modal')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div class="modal-body" id="invoice-content"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('invoice-modal')">Close</button>
+      <button class="btn btn-primary" onclick="window.print()">🖨️ Print</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let products = [];
+
+(async () => {
+  await checkAuth();
+  renderLayout('/sales', '💳 Sales', `
+    <div class="actions-bar">
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Search sales...">
+      </div>
+      <button class="btn btn-primary" onclick="openSaleModal()">➕ New Sale</button>
+    </div>
+    <div class="card">
+      <div class="card-header">Sales History</div>
+      <div class="table-wrapper">
+        <table id="sales-table">
+          <thead><tr>
+            <th>#</th><th>Product</th><th>Qty</th>
+            <th>Unit Price</th><th>Total</th><th>Date</th><th>Invoice</th>
+          </tr></thead>
+          <tbody id="sales-body">
+            <tr><td colspan="7" style="text-align:center;padding:40px;"><div class="spinner" style="margin:auto;"></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `);
+  filterTable('search-input', 'sales-table');
+  await loadProducts();
+  await loadSales();
+})();
+
+async function loadProducts() {
+  const r = await apiFetch('/products');
+  if (r && r.ok) {
+    products = r.data;
+    const sel = document.getElementById('sale-product');
+    if (sel) {
+      sel.innerHTML = '<option value="">-- Select Product --</option>';
+      products.forEach(p => sel.innerHTML += `<option value="${p.id}" data-price="${p.price}" data-qty="${p.quantity}">${p.name} (Stock: ${p.quantity})</option>`);
+    }
+  }
+}
+
+async function loadSales() {
+  const r = await apiFetch('/sales?limit=100');
+  if (!r || !r.ok) return;
+  const sales = r.data;
+  const body = document.getElementById('sales-body');
+  if (!sales.length) {
+    body.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="icon">💳</div><h4>No sales yet</h4><p>Record your first sale to get started.</p></div></td></tr>`;
+    return;
+  }
+  body.innerHTML = sales.map(s => `
+    <tr>
+      <td><span class="badge badge-muted">#${s.id}</span></td>
+      <td><strong>${s.product_name}</strong></td>
+      <td>${s.quantity_sold}</td>
+      <td>${formatCurrency(s.unit_price)}</td>
+      <td><strong style="color:var(--success);">${formatCurrency(s.total_price)}</strong></td>
+      <td>${formatDateTime(s.sale_date)}</td>
+      <td><button class="btn btn-sm btn-secondary" onclick="viewInvoice(${s.id})">🧾 View</button></td>
+    </tr>
+  `).join('');
+}
+
+function openSaleModal() {
+  document.getElementById('sale-product').value = '';
+  document.getElementById('sale-qty').value = 1;
+  document.getElementById('sale-preview').style.display = 'none';
+  openModal('sale-modal');
+}
+
+function updateSalePreview() {
+  const sel = document.getElementById('sale-product');
+  const qty = parseInt(document.getElementById('sale-qty').value) || 0;
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt || !opt.value) { document.getElementById('sale-preview').style.display = 'none'; return; }
+  const price = parseFloat(opt.dataset.price);
+  const stock = parseInt(opt.dataset.qty);
+  document.getElementById('preview-unit').textContent = formatCurrency(price);
+  document.getElementById('preview-stock').textContent = stock;
+  document.getElementById('preview-total').textContent = formatCurrency(price * qty);
+  document.getElementById('sale-preview').style.display = 'block';
+}
+
+async function recordSale() {
+  const productId = document.getElementById('sale-product').value;
+  const qty = parseInt(document.getElementById('sale-qty').value);
+  if (!productId || !qty || qty < 1) { showToast('Please select product and quantity', 'error'); return; }
+  const r = await apiFetch('/sales', { method: 'POST', body: JSON.stringify({ product_id: productId, quantity: qty }) });
+  if (r && r.ok) {
+    showToast(`Sale recorded! Total: ${formatCurrency(r.data.total)}`, 'success');
+    closeModal('sale-modal');
+    await loadProducts();
+    await loadSales();
+    viewInvoice(r.data.sale_id);
+  } else {
+    showToast(r?.data?.error || 'Sale failed', 'error');
+  }
+}
+
+async function viewInvoice(saleId) {
+  const r = await apiFetch(`/sales/${saleId}/invoice`);
+  if (!r || !r.ok) return;
+  const s = r.data;
+  document.getElementById('invoice-content').innerHTML = `
+    <div class="invoice-box">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;">
+        <div>
+          <h2>📦 StockSense</h2>
+          <div style="color:#666;font-size:13px;">Inventory Management System</div>
+        </div>
+        <div style="text-align:right;font-size:13px;color:#666;">
+          <div><strong>Invoice #${s.id}</strong></div>
+          <div>${formatDateTime(s.sale_date)}</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr><th>Product</th><th>Category</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>${s.product_name}</td>
+            <td>${s.category || '—'}</td>
+            <td>${s.quantity_sold}</td>
+            <td>₹${s.unit_price}</td>
+            <td>₹${s.total_price}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="invoice-total">Total: ₹${parseFloat(s.total_price).toLocaleString('en-IN', {minimumFractionDigits:2})}</div>
+      <div style="margin-top:24px;padding-top:16px;border-top:1px solid #eee;font-size:12px;color:#999;text-align:center;">
+        Thank you for your business! • StockSense IMS
+      </div>
+    </div>`;
+  openModal('invoice-modal');
+}
+</script>
+</body>
+</html>
