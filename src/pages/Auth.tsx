@@ -6,15 +6,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Package } from "lucide-react";
+import { Package, Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { loginSchema, signupSchema } from "@/utils/validation";
+import { getZodErrors, FieldErrors } from "@/utils/errorHandler";
+import FormError from "@/components/FormError";
+import { sanitize } from "@/utils/validation";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -33,39 +39,54 @@ const Auth = () => {
     return { score: 100, label: "Strong", color: "text-[hsl(var(--success))]" };
   }, [password]);
 
-  const isPasswordValid = /^[a-zA-Z0-9]+$/.test(password) && password.length >= 6;
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrors({});
 
-    if (!isPasswordValid) {
-      toast({ title: "Invalid password", description: "Password must be at least 6 characters and contain only letters and numbers (alphanumeric).", variant: "destructive" });
-      return;
-    }
-
-    setLoading(true);
-
-    if (isLogin) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        toast({ title: "Login failed", description: error.message, variant: "destructive" });
+    try {
+      if (isLogin) {
+        const data = loginSchema.parse({ email, password });
+        setLoading(true);
+        const { error } = await supabase.auth.signInWithPassword({
+          email: sanitize(data.email),
+          password: data.password,
+        });
+        if (error) {
+          toast({ title: "Login failed", description: error.message, variant: "destructive" });
+        } else {
+          navigate("/");
+        }
       } else {
-        navigate("/");
+        const data = signupSchema.parse({ displayName, email, password, confirmPassword });
+        setLoading(true);
+        const { error } = await supabase.auth.signUp({
+          email: sanitize(data.email),
+          password: data.password,
+          options: { data: { display_name: sanitize(data.displayName) } },
+        });
+        if (error) {
+          toast({ title: "Signup failed", description: error.message, variant: "destructive" });
+        } else {
+          toast({ title: "Account created!", description: "Please check your email to verify your account." });
+          setIsLogin(true);
+        }
       }
-    } else {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { display_name: displayName } },
-      });
-      if (error) {
-        toast({ title: "Signup failed", description: error.message, variant: "destructive" });
+    } catch (err: any) {
+      if (err.issues) {
+        setErrors(getZodErrors(err));
       } else {
-        toast({ title: "Account created!", description: "You can now log in." });
-        navigate("/");
+        toast({ title: "Error", description: err.message || "Something went wrong", variant: "destructive" });
       }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const switchMode = () => {
+    setIsLogin(!isLogin);
+    setErrors({});
+    setPassword("");
+    setConfirmPassword("");
   };
 
   return (
@@ -85,18 +106,19 @@ const Auth = () => {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label htmlFor="name">Display Name</Label>
                 <Input
                   id="name"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   placeholder="Your name"
-                  required={!isLogin}
+                  className={errors.displayName ? "border-destructive" : ""}
                 />
+                <FormError message={errors.displayName} />
               </div>
             )}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -104,10 +126,11 @@ const Auth = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="admin@shop.com"
-                required
+                className={errors.email ? "border-destructive" : ""}
               />
+              <FormError message={errors.email} />
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
@@ -115,15 +138,13 @@ const Auth = () => {
                 value={password}
                 onChange={(e) => {
                   const val = e.target.value;
-                  if (val === "" || /^[a-zA-Z0-9]*$/.test(val)) {
-                    setPassword(val);
-                  }
+                  if (val === "" || /^[a-zA-Z0-9]*$/.test(val)) setPassword(val);
                 }}
                 placeholder="••••••••"
-                required
-                minLength={6}
+                className={errors.password ? "border-destructive" : ""}
               />
               <p className="text-xs text-muted-foreground">Only letters and numbers (alphanumeric)</p>
+              <FormError message={errors.password} />
               {password && (
                 <div className="space-y-1">
                   <Progress value={passwordStrength.score} className="h-1.5" />
@@ -133,16 +154,31 @@ const Auth = () => {
                 </div>
               )}
             </div>
+            {!isLogin && (
+              <div className="space-y-1">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "" || /^[a-zA-Z0-9]*$/.test(val)) setConfirmPassword(val);
+                  }}
+                  placeholder="••••••••"
+                  className={errors.confirmPassword ? "border-destructive" : ""}
+                />
+                <FormError message={errors.confirmPassword} />
+              </div>
+            )}
             <Button type="submit" className="w-full" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {loading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
             </Button>
           </form>
           <div className="mt-4 text-center text-sm text-muted-foreground">
             {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
-            <button
-              onClick={() => setIsLogin(!isLogin)}
-              className="text-primary underline-offset-4 hover:underline"
-            >
+            <button onClick={switchMode} className="text-primary underline-offset-4 hover:underline">
               {isLogin ? "Sign up" : "Sign in"}
             </button>
           </div>

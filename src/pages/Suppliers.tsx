@@ -8,7 +8,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { supplierSchema } from "@/utils/validation";
+import { getZodErrors, FieldErrors } from "@/utils/errorHandler";
+import FormError from "@/components/FormError";
+import { sanitize } from "@/utils/validation";
 
 const Suppliers = () => {
   const { user } = useAuth();
@@ -16,6 +20,8 @@ const Suppliers = () => {
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [form, setForm] = useState({ name: "", contact_person: "", email: "", phone: "", address: "" });
 
   const fetchSuppliers = async () => {
@@ -27,28 +33,53 @@ const Suppliers = () => {
 
   const handleSave = async () => {
     if (!user) return;
-    const payload = { ...form, user_id: user.id };
-    if (editing) {
-      await supabase.from("suppliers").update(payload).eq("id", editing.id);
-      toast({ title: "Supplier updated" });
-    } else {
-      await supabase.from("suppliers").insert(payload);
-      toast({ title: "Supplier added" });
+    setErrors({});
+
+    try {
+      const validated = supplierSchema.parse(form);
+      setSaving(true);
+      const payload = {
+        name: sanitize(validated.name),
+        contact_person: validated.contact_person ? sanitize(validated.contact_person) : null,
+        email: validated.email || null,
+        phone: validated.phone || null,
+        address: validated.address ? sanitize(validated.address) : null,
+        user_id: user.id,
+      };
+
+      if (editing) {
+        const { error } = await supabase.from("suppliers").update(payload).eq("id", editing.id);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+        toast({ title: "Supplier updated" });
+      } else {
+        const { error } = await supabase.from("suppliers").insert(payload);
+        if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
+        toast({ title: "Supplier added" });
+      }
+      setOpen(false);
+      setEditing(null);
+      resetForm();
+      fetchSuppliers();
+    } catch (err: any) {
+      if (err.issues) setErrors(getZodErrors(err));
+      else toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
-    setOpen(false);
-    setEditing(null);
-    setForm({ name: "", contact_person: "", email: "", phone: "", address: "" });
-    fetchSuppliers();
   };
+
+  const resetForm = () => setForm({ name: "", contact_person: "", email: "", phone: "", address: "" });
 
   const handleEdit = (s: any) => {
     setEditing(s);
+    setErrors({});
     setForm({ name: s.name, contact_person: s.contact_person || "", email: s.email || "", phone: s.phone || "", address: s.address || "" });
     setOpen(true);
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from("suppliers").delete().eq("id", id);
+    const { error } = await supabase.from("suppliers").delete().eq("id", id);
+    if (error) { toast({ title: "Error", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Supplier deleted" });
     fetchSuppliers();
   };
@@ -57,19 +88,22 @@ const Suppliers = () => {
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl sm:text-3xl font-bold">Suppliers</h1>
-        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditing(null); setForm({ name: "", contact_person: "", email: "", phone: "", address: "" }); } }}>
+        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setEditing(null); resetForm(); setErrors({}); } }}>
           <DialogTrigger asChild>
             <Button><Plus className="mr-2 h-4 w-4" /> Add Supplier</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader><DialogTitle>{editing ? "Edit" : "Add"} Supplier</DialogTitle></DialogHeader>
             <div className="space-y-4">
-              <div><Label>Company Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></div>
+              <div><Label>Company Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={errors.name ? "border-destructive" : ""} /><FormError message={errors.name} /></div>
               <div><Label>Contact Person</Label><Input value={form.contact_person} onChange={(e) => setForm({ ...form, contact_person: e.target.value })} /></div>
-              <div><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></div>
+              <div><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={errors.email ? "border-destructive" : ""} /><FormError message={errors.email} /></div>
               <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
               <div><Label>Address</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
-              <Button onClick={handleSave} className="w-full">{editing ? "Update" : "Add"} Supplier</Button>
+              <Button onClick={handleSave} className="w-full" disabled={saving}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {editing ? "Update" : "Add"} Supplier
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
