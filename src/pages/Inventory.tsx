@@ -10,8 +10,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { inventoryUpdateSchema } from "@/utils/validation";
+import { getZodErrors, FieldErrors } from "@/utils/errorHandler";
+import FormError from "@/components/FormError";
 
 const Inventory = () => {
   const { user } = useAuth();
@@ -19,6 +22,8 @@ const Inventory = () => {
   const [products, setProducts] = useState<any[]>([]);
   const [logs, setLogs] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [form, setForm] = useState({ product_id: "", change_type: "addition", quantity: "0", notes: "" });
 
   const fetchData = async () => {
@@ -33,41 +38,52 @@ const Inventory = () => {
   useEffect(() => { if (user) fetchData(); }, [user]);
 
   const handleUpdate = async () => {
-    if (!user || !form.product_id) return;
-    const product = products.find((p) => p.id === form.product_id);
-    if (!product) return;
+    if (!user) return;
+    setErrors({});
 
-    const qty = parseInt(form.quantity);
-    const change = form.change_type === "reduction" ? -qty : qty;
-    const newQty = product.quantity + change;
+    try {
+      const validated = inventoryUpdateSchema.parse(form);
+      const product = products.find((p) => p.id === validated.product_id);
+      if (!product) { setErrors({ product_id: "Product not found" }); return; }
 
-    if (newQty < 0) {
-      toast({ title: "Cannot reduce below 0", variant: "destructive" });
-      return;
+      const change = validated.change_type === "reduction" ? -validated.quantity : validated.quantity;
+      const newQty = product.quantity + change;
+
+      if (newQty < 0) {
+        setErrors({ quantity: `Cannot reduce below 0. Current stock: ${product.quantity}` });
+        return;
+      }
+
+      setSaving(true);
+      await supabase.from("products").update({ quantity: newQty }).eq("id", product.id);
+      await supabase.from("inventory_logs").insert({
+        user_id: user.id,
+        product_id: product.id,
+        change_type: validated.change_type,
+        quantity_change: change,
+        previous_quantity: product.quantity,
+        new_quantity: newQty,
+        notes: validated.notes || null,
+      });
+
+      toast({ title: "Stock updated" });
+      setOpen(false);
+      setForm({ product_id: "", change_type: "addition", quantity: "0", notes: "" });
+      setErrors({});
+      fetchData();
+    } catch (err: any) {
+      if (err.issues) setErrors(getZodErrors(err));
+      else toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
-
-    await supabase.from("products").update({ quantity: newQty }).eq("id", product.id);
-    await supabase.from("inventory_logs").insert({
-      user_id: user.id,
-      product_id: product.id,
-      change_type: form.change_type,
-      quantity_change: change,
-      previous_quantity: product.quantity,
-      new_quantity: newQty,
-      notes: form.notes || null,
-    });
-
-    toast({ title: "Stock updated" });
-    setOpen(false);
-    setForm({ product_id: "", change_type: "addition", quantity: "0", notes: "" });
-    fetchData();
   };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Inventory Control</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setErrors({}); }}>
           <DialogTrigger asChild>
             <Button><ArrowUpDown className="mr-2 h-4 w-4" /> Update Stock</Button>
           </DialogTrigger>
@@ -77,13 +93,14 @@ const Inventory = () => {
               <div>
                 <Label>Product</Label>
                 <Select value={form.product_id} onValueChange={(v) => setForm({ ...form, product_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
+                  <SelectTrigger className={errors.product_id ? "border-destructive" : ""}><SelectValue placeholder="Select product" /></SelectTrigger>
                   <SelectContent>
                     {products.map((p) => (
                       <SelectItem key={p.id} value={p.id}>{p.name} (Current: {p.quantity})</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <FormError message={errors.product_id} />
               </div>
               <div>
                 <Label>Type</Label>
@@ -96,9 +113,16 @@ const Inventory = () => {
                   </SelectContent>
                 </Select>
               </div>
-              <div><Label>Quantity</Label><Input type="number" min="0" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} /></div>
+              <div>
+                <Label>Quantity</Label>
+                <Input type="number" min="0" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} className={errors.quantity ? "border-destructive" : ""} />
+                <FormError message={errors.quantity} />
+              </div>
               <div><Label>Notes</Label><Input value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Optional notes" /></div>
-              <Button onClick={handleUpdate} className="w-full">Update Stock</Button>
+              <Button onClick={handleUpdate} className="w-full" disabled={saving}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Update Stock
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

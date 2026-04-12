@@ -4,13 +4,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, FileText } from "lucide-react";
+import { Plus, FileText, Loader2 } from "lucide-react";
 import { format } from "date-fns";
+import { saleSchema } from "@/utils/validation";
+import { getZodErrors, FieldErrors } from "@/utils/errorHandler";
+import FormError from "@/components/FormError";
 
 const Sales = () => {
   const { user } = useAuth();
@@ -18,6 +21,8 @@ const Sales = () => {
   const [sales, setSales] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [form, setForm] = useState({ product_id: "", quantity: "1" });
 
   const fetchSales = async () => {
@@ -35,48 +40,56 @@ const Sales = () => {
   }, [user]);
 
   const handleSale = async () => {
-    if (!user || !form.product_id) return;
-    const product = products.find((p) => p.id === form.product_id);
-    if (!product) return;
+    if (!user) return;
+    setErrors({});
 
-    const qty = parseInt(form.quantity);
-    if (qty > product.quantity) {
-      toast({ title: "Not enough stock", description: `Only ${product.quantity} available`, variant: "destructive" });
-      return;
+    try {
+      const validated = saleSchema.parse(form);
+      const product = products.find((p) => p.id === validated.product_id);
+      if (!product) { setErrors({ product_id: "Product not found" }); return; }
+
+      if (validated.quantity > product.quantity) {
+        setErrors({ quantity: `Not enough stock. Only ${product.quantity} available` });
+        return;
+      }
+
+      setSaving(true);
+      const totalPrice = validated.quantity * Number(product.price);
+
+      const { error: saleError } = await supabase.from("sales").insert({
+        user_id: user.id,
+        product_id: validated.product_id,
+        quantity: validated.quantity,
+        unit_price: Number(product.price),
+        total_price: totalPrice,
+      });
+
+      if (saleError) { toast({ title: "Error", description: saleError.message, variant: "destructive" }); return; }
+
+      await supabase.from("products").update({ quantity: product.quantity - validated.quantity }).eq("id", product.id);
+
+      await supabase.from("inventory_logs").insert({
+        user_id: user.id,
+        product_id: product.id,
+        change_type: "sale",
+        quantity_change: -validated.quantity,
+        previous_quantity: product.quantity,
+        new_quantity: product.quantity - validated.quantity,
+        notes: `Sale of ${validated.quantity} units`,
+      });
+
+      toast({ title: "Sale recorded!" });
+      setOpen(false);
+      setForm({ product_id: "", quantity: "1" });
+      setErrors({});
+      fetchSales();
+      fetchProducts();
+    } catch (err: any) {
+      if (err.issues) setErrors(getZodErrors(err));
+      else toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
     }
-
-    const totalPrice = qty * Number(product.price);
-
-    // Record sale
-    const { error: saleError } = await supabase.from("sales").insert({
-      user_id: user.id,
-      product_id: form.product_id,
-      quantity: qty,
-      unit_price: Number(product.price),
-      total_price: totalPrice,
-    });
-
-    if (saleError) { toast({ title: "Error", description: saleError.message, variant: "destructive" }); return; }
-
-    // Reduce stock
-    await supabase.from("products").update({ quantity: product.quantity - qty }).eq("id", product.id);
-
-    // Log inventory change
-    await supabase.from("inventory_logs").insert({
-      user_id: user.id,
-      product_id: product.id,
-      change_type: "sale",
-      quantity_change: -qty,
-      previous_quantity: product.quantity,
-      new_quantity: product.quantity - qty,
-      notes: `Sale of ${qty} units`,
-    });
-
-    toast({ title: "Sale recorded!" });
-    setOpen(false);
-    setForm({ product_id: "", quantity: "1" });
-    fetchSales();
-    fetchProducts();
   };
 
   const generateInvoice = (sale: any) => {
@@ -104,7 +117,7 @@ Total: ₹${Number(sale.total_price).toFixed(2)}
     <div className="space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl sm:text-3xl font-bold">Sales</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) { setErrors({}); setForm({ product_id: "", quantity: "1" }); } }}>
           <DialogTrigger asChild>
             <Button><Plus className="mr-2 h-4 w-4" /> Record Sale</Button>
           </DialogTrigger>
@@ -114,7 +127,7 @@ Total: ₹${Number(sale.total_price).toFixed(2)}
               <div>
                 <Label>Product</Label>
                 <Select value={form.product_id} onValueChange={(v) => setForm({ ...form, product_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
+                  <SelectTrigger className={errors.product_id ? "border-destructive" : ""}><SelectValue placeholder="Select product" /></SelectTrigger>
                   <SelectContent>
                     {products.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
@@ -123,14 +136,22 @@ Total: ₹${Number(sale.total_price).toFixed(2)}
                     ))}
                   </SelectContent>
                 </Select>
+                <FormError message={errors.product_id} />
               </div>
-              <div><Label>Quantity</Label><Input type="number" min="1" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} /></div>
+              <div>
+                <Label>Quantity</Label>
+                <Input type="number" min="1" value={form.quantity} onChange={(e) => setForm({ ...form, quantity: e.target.value })} className={errors.quantity ? "border-destructive" : ""} />
+                <FormError message={errors.quantity} />
+              </div>
               {form.product_id && (
                 <div className="rounded-lg bg-muted p-3 text-sm">
                   <strong>Total:</strong> ₹{(parseInt(form.quantity || "0") * Number(products.find((p) => p.id === form.product_id)?.price || 0)).toFixed(2)}
                 </div>
               )}
-              <Button onClick={handleSale} className="w-full">Record Sale</Button>
+              <Button onClick={handleSale} className="w-full" disabled={saving}>
+                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Record Sale
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
