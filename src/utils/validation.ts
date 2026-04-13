@@ -5,6 +5,10 @@ import DOMPurify from "dompurify";
 export const sanitize = (input: string): string =>
   DOMPurify.sanitize(input.trim(), { ALLOWED_TAGS: [] });
 
+// ── Dummy name patterns ──
+const DUMMY_NAMES = /^(test|product\d*|sample|demo|asdf|xxx|foo|bar|baz)$/i;
+const DUMMY_SUPPLIER_NAMES = /^(test|supplier\d*|sample|demo|asdf|xxx|foo|bar|company\d*)$/i;
+
 // ── Auth Schemas ──
 export const loginSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),
@@ -31,21 +35,55 @@ export const signupSchema = z
 
 // ── Product Schema ──
 export const productSchema = z.object({
-  name: z.string().trim().min(1, "Product name is required").max(200),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Product name is required")
+    .max(200)
+    .refine((v) => !DUMMY_NAMES.test(v), "Please enter a real product name"),
   category: z.string().trim().min(1, "Category is required").max(100),
-  price: z.coerce.number().positive("Price must be greater than 0"),
-  quantity: z.coerce.number().int().min(0, "Quantity cannot be negative"),
+  price: z.coerce
+    .number()
+    .positive("Price must be greater than 0")
+    .max(99_999_999, "Price exceeds maximum allowed value"),
+  quantity: z.coerce
+    .number()
+    .int()
+    .min(0, "Quantity cannot be negative")
+    .max(9_999_999, "Quantity exceeds maximum allowed value"),
   low_stock_threshold: z.coerce.number().int().min(0, "Threshold cannot be negative"),
   supplier_id: z.string().optional(),
 });
 
-// ── Supplier Schema ──
+// ── Supplier Schema (all fields mandatory) ──
 export const supplierSchema = z.object({
-  name: z.string().trim().min(1, "Company name is required").max(200),
-  contact_person: z.string().max(200).optional(),
-  email: z.string().email("Invalid email").optional().or(z.literal("")),
-  phone: z.string().max(20).optional(),
-  address: z.string().max(500).optional(),
+  name: z
+    .string()
+    .trim()
+    .min(1, "Company name is required")
+    .max(200)
+    .refine((v) => !DUMMY_SUPPLIER_NAMES.test(v), "Please enter a real company name"),
+  contact_person: z
+    .string()
+    .trim()
+    .min(1, "Contact person is required")
+    .max(200),
+  email: z
+    .string()
+    .trim()
+    .min(1, "Email is required")
+    .email("Invalid email"),
+  phone: z
+    .string()
+    .trim()
+    .min(1, "Phone number is required")
+    .max(20)
+    .regex(/^\+?[0-9]{7,15}$/, "Invalid phone number format"),
+  address: z
+    .string()
+    .trim()
+    .min(10, "Address must be at least 10 characters")
+    .max(500),
 });
 
 // ── Sale Schema ──
