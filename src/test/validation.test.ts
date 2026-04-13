@@ -289,7 +289,6 @@ describe("Edge Cases", () => {
   });
 
   it("✅ Network failure → proper error (error handler)", () => {
-    const { getErrorMessage } = require("@/utils/errorHandler");
     expect(getErrorMessage(new Error("Network request failed"))).toBe("Network request failed");
     expect(getErrorMessage("timeout")).toBe("timeout");
     expect(getErrorMessage(null)).toBe("An unexpected error occurred");
