@@ -40,10 +40,10 @@ const Suppliers = () => {
       setSaving(true);
       const payload = {
         name: sanitize(validated.name),
-        contact_person: validated.contact_person ? sanitize(validated.contact_person) : null,
-        email: validated.email || null,
-        phone: validated.phone || null,
-        address: validated.address ? sanitize(validated.address) : null,
+        contact_person: sanitize(validated.contact_person),
+        email: validated.email,
+        phone: validated.phone,
+        address: sanitize(validated.address),
         user_id: user.id,
       };
 
@@ -96,10 +96,10 @@ const Suppliers = () => {
             <DialogHeader><DialogTitle>{editing ? "Edit" : "Add"} Supplier</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <div><Label>Company Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={errors.name ? "border-destructive" : ""} /><FormError message={errors.name} /></div>
-              <div><Label>Contact Person</Label><Input value={form.contact_person} onChange={(e) => setForm({ ...form, contact_person: e.target.value })} /></div>
-              <div><Label>Email</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={errors.email ? "border-destructive" : ""} /><FormError message={errors.email} /></div>
-              <div><Label>Phone</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></div>
-              <div><Label>Address</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} /></div>
+              <div><Label>Contact Person *</Label><Input value={form.contact_person} onChange={(e) => setForm({ ...form, contact_person: e.target.value })} className={errors.contact_person ? "border-destructive" : ""} /><FormError message={errors.contact_person} /></div>
+              <div><Label>Email *</Label><Input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={errors.email ? "border-destructive" : ""} /><FormError message={errors.email} /></div>
+              <div><Label>Phone *</Label><Input value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={errors.phone ? "border-destructive" : ""} /><FormError message={errors.phone} /></div>
+              <div><Label>Address *</Label><Input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className={errors.address ? "border-destructive" : ""} /><FormError message={errors.address} /></div>
               <Button onClick={handleSave} className="w-full" disabled={saving}>
                 {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {editing ? "Update" : "Add"} Supplier
