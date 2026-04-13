@@ -8,6 +8,7 @@ import {
   inventoryUpdateSchema,
   sanitize,
 } from "@/utils/validation";
+import { getErrorMessage } from "@/utils/errorHandler";
 
 // ═══════════════════════════════════════════════
 // AUTHENTICATION TESTS (8 tests)
