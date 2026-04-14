@@ -60,30 +60,42 @@ describe("Authentication Tests", () => {
 // SIGNUP TESTS
 // ═══════════════════════════════════════════════
 describe("Signup Tests", () => {
-  const valid = { displayName: "John Doe", email: "john@example.com", password: "Abc123", confirmPassword: "Abc123" };
+  const valid = { displayName: "John Doe", email: "john@example.com", password: "Abc123!@", confirmPassword: "Abc123!@" };
 
   it("✅ Valid signup → success", () => {
     expect(() => signupSchema.parse(valid)).not.toThrow();
   });
 
-  it("❌ Weak password → rejected", () => {
-    expect(signupSchema.safeParse({ ...valid, password: "Ab1", confirmPassword: "Ab1" }).success).toBe(false);
+  it("❌ Short password (less than 8 chars) → rejected", () => {
+    expect(signupSchema.safeParse({ ...valid, password: "Ab1!xyz", confirmPassword: "Ab1!xyz" }).success).toBe(false);
+  });
+
+  it("❌ No uppercase → rejected", () => {
+    expect(signupSchema.safeParse({ ...valid, password: "abc123!@", confirmPassword: "abc123!@" }).success).toBe(false);
+  });
+
+  it("❌ No lowercase → rejected", () => {
+    expect(signupSchema.safeParse({ ...valid, password: "ABC123!@", confirmPassword: "ABC123!@" }).success).toBe(false);
+  });
+
+  it("❌ No number → rejected", () => {
+    expect(signupSchema.safeParse({ ...valid, password: "Abcdefg!", confirmPassword: "Abcdefg!" }).success).toBe(false);
+  });
+
+  it("❌ No special character → rejected", () => {
+    expect(signupSchema.safeParse({ ...valid, password: "Abc12345", confirmPassword: "Abc12345" }).success).toBe(false);
   });
 
   it("❌ Password mismatch → error", () => {
-    expect(signupSchema.safeParse({ ...valid, confirmPassword: "Wrong1" }).success).toBe(false);
+    expect(signupSchema.safeParse({ ...valid, confirmPassword: "Wrong1!@" }).success).toBe(false);
   });
 
   it("❌ Empty display name → error", () => {
     expect(signupSchema.safeParse({ ...valid, displayName: "" }).success).toBe(false);
   });
 
-  it("❌ Invalid email → error", () => {
+  it("❌ Invalid email format → error", () => {
     expect(signupSchema.safeParse({ ...valid, email: "notanemail" }).success).toBe(false);
-  });
-
-  it("❌ Special chars in password → rejected", () => {
-    expect(signupSchema.safeParse({ ...valid, password: "Abc123!", confirmPassword: "Abc123!" }).success).toBe(false);
   });
 });
 
