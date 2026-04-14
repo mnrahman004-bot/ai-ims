@@ -169,10 +169,7 @@ const Auth = () => {
                   id="confirmPassword"
                   type="password"
                   value={confirmPassword}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === "" || /^[a-zA-Z0-9]*$/.test(val)) setConfirmPassword(val);
-                  }}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="••••••••"
                   className={errors.confirmPassword ? "border-destructive" : ""}
                 />
