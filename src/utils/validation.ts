@@ -21,11 +21,22 @@ export const loginSchema = z.object({
 export const signupSchema = z
   .object({
     displayName: z.string().trim().min(1, "Display name is required").max(100),
-    email: z.string().trim().email("Please enter a valid email address"),
+    email: z
+      .string()
+      .trim()
+      .min(1, "Email is required")
+      .email("Please enter a valid email address")
+      .regex(
+        /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+        "Email must be in format: user@domain.com"
+      ),
     password: z
       .string()
-      .min(6, "Password must be at least 6 characters")
-      .regex(/^[a-zA-Z0-9]+$/, "Password must contain only letters and numbers"),
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number")
+      .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, "Password must contain at least one special character"),
     confirmPassword: z.string(),
   })
   .refine((d) => d.password === d.confirmPassword, {
