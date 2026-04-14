@@ -27,16 +27,18 @@ const Auth = () => {
   const passwordStrength = useMemo(() => {
     if (!password) return { score: 0, label: "", color: "" };
     let score = 0;
-    if (password.length >= 6) score++;
     if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
     if (/[A-Z]/.test(password)) score++;
     if (/[a-z]/.test(password)) score++;
     if (/[0-9]/.test(password)) score++;
+    if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) score++;
 
-    if (score <= 2) return { score: score * 20, label: "Weak", color: "text-destructive" };
-    if (score <= 3) return { score: 60, label: "Fair", color: "text-[hsl(var(--warning))]" };
-    if (score <= 4) return { score: 80, label: "Good", color: "text-primary" };
-    return { score: 100, label: "Strong", color: "text-[hsl(var(--success))]" };
+    if (score <= 2) return { score: score * 15, label: "Weak", color: "text-destructive" };
+    if (score <= 3) return { score: 50, label: "Fair", color: "text-[hsl(var(--warning))]" };
+    if (score <= 4) return { score: 70, label: "Good", color: "text-primary" };
+    if (score <= 5) return { score: 85, label: "Strong", color: "text-[hsl(var(--success))]" };
+    return { score: 100, label: "Very Strong", color: "text-[hsl(var(--success))]" };
   }, [password]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -137,13 +139,19 @@ const Auth = () => {
                 type="password"
                 value={password}
                 onChange={(e) => {
-                  const val = e.target.value;
-                  if (val === "" || /^[a-zA-Z0-9]*$/.test(val)) setPassword(val);
+                  if (isLogin) {
+                    const val = e.target.value;
+                    if (val === "" || /^[a-zA-Z0-9]*$/.test(val)) setPassword(val);
+                  } else {
+                    setPassword(e.target.value);
+                  }
                 }}
                 placeholder="••••••••"
                 className={errors.password ? "border-destructive" : ""}
               />
-              <p className="text-xs text-muted-foreground">Only letters and numbers (alphanumeric)</p>
+              <p className="text-xs text-muted-foreground">
+                {isLogin ? "Only letters and numbers" : "Min 8 chars: uppercase, lowercase, number & special character"}
+              </p>
               <FormError message={errors.password} />
               {password && (
                 <div className="space-y-1">
