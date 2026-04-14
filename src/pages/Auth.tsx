@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Package, Loader2 } from "lucide-react";
+import { Package, Loader2, Check, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { loginSchema, signupSchema } from "@/utils/validation";
 import { getZodErrors, FieldErrors } from "@/utils/errorHandler";
@@ -149,11 +149,36 @@ const Auth = () => {
                 placeholder="••••••••"
                 className={errors.password ? "border-destructive" : ""}
               />
-              <p className="text-xs text-muted-foreground">
-                {isLogin ? "Only letters and numbers" : "Min 8 chars: uppercase, lowercase, number & special character"}
-              </p>
               <FormError message={errors.password} />
-              {password && (
+              {!isLogin && password && (
+                <div className="space-y-1.5">
+                  <Progress value={passwordStrength.score} className="h-1.5" />
+                  <p className={`text-xs font-medium ${passwordStrength.color}`}>
+                    {passwordStrength.label}
+                  </p>
+                  <ul className="space-y-0.5">
+                    {[
+                      { met: password.length >= 8, label: "At least 8 characters" },
+                      { met: /[A-Z]/.test(password), label: "One uppercase letter" },
+                      { met: /[a-z]/.test(password), label: "One lowercase letter" },
+                      { met: /[0-9]/.test(password), label: "One number" },
+                      { met: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password), label: "One special character (!@#$...)" },
+                    ].map((req) => (
+                      <li key={req.label} className="flex items-center gap-1.5 text-xs">
+                        {req.met ? (
+                          <Check className="h-3 w-3 text-[hsl(var(--success,142_71%_45%))]" />
+                        ) : (
+                          <X className="h-3 w-3 text-destructive" />
+                        )}
+                        <span className={req.met ? "text-muted-foreground" : "text-destructive"}>
+                          {req.label}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {isLogin && password && (
                 <div className="space-y-1">
                   <Progress value={passwordStrength.score} className="h-1.5" />
                   <p className={`text-xs font-medium ${passwordStrength.color}`}>
