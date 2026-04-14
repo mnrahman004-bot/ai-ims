@@ -150,7 +150,7 @@ describe("Supplier Tests", () => {
     name: "Acme Corporation",
     contact_person: "Jane Smith",
     email: "jane@acme.com",
-    phone: "+919876543210",
+    phone: "9876543210",
     address: "123 Main Street, Mumbai, Maharashtra 400001",
   };
 
