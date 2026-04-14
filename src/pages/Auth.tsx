@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Package, Loader2, Check, X } from "lucide-react";
+import { Package, Loader2, Check, X, Eye, EyeOff } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { loginSchema, signupSchema } from "@/utils/validation";
 import { getZodErrors, FieldErrors } from "@/utils/errorHandler";
@@ -20,6 +20,8 @@ const Auth = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -134,21 +136,31 @@ const Auth = () => {
             </div>
             <div className="space-y-1">
               <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => {
-                  if (isLogin) {
-                    const val = e.target.value;
-                    if (val === "" || /^[a-zA-Z0-9]*$/.test(val)) setPassword(val);
-                  } else {
-                    setPassword(e.target.value);
-                  }
-                }}
-                placeholder="••••••••"
-                className={errors.password ? "border-destructive" : ""}
-              />
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => {
+                    if (isLogin) {
+                      const val = e.target.value;
+                      if (val === "" || /^[a-zA-Z0-9]*$/.test(val)) setPassword(val);
+                    } else {
+                      setPassword(e.target.value);
+                    }
+                  }}
+                  placeholder="••••••••"
+                  className={`pr-10 ${errors.password ? "border-destructive" : ""}`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
               <FormError message={errors.password} />
               {!isLogin && password && (
                 <div className="space-y-1.5">
@@ -190,14 +202,24 @@ const Auth = () => {
             {!isLogin && (
               <div className="space-y-1">
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className={errors.confirmPassword ? "border-destructive" : ""}
-                />
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className={`pr-10 ${errors.confirmPassword ? "border-destructive" : ""}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
                 <FormError message={errors.confirmPassword} />
               </div>
             )}
