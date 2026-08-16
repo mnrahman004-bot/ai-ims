@@ -141,14 +141,7 @@ const Auth = () => {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(e) => {
-                    if (isLogin) {
-                      const val = e.target.value;
-                      if (val === "" || /^[a-zA-Z0-9]*$/.test(val)) setPassword(val);
-                    } else {
-                      setPassword(e.target.value);
-                    }
-                  }}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className={`pr-10 ${errors.password ? "border-destructive" : ""}`}
                 />

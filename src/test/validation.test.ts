@@ -20,7 +20,7 @@ describe("Authentication Tests", () => {
 
   it("❌ Invalid email/password → error", () => {
     expect(loginSchema.safeParse({ email: "bad", password: "Abc123" }).success).toBe(false);
-    expect(loginSchema.safeParse({ email: "a@b.com", password: "Abc!" }).success).toBe(false);
+    expect(loginSchema.safeParse({ email: "a@b.com", password: "Abc!" }).success).toBe(true);
   });
 
   it("❌ Empty fields → validation error", () => {
@@ -40,9 +40,9 @@ describe("Authentication Tests", () => {
     expect(result).not.toContain("alert");
   });
 
-  it("❌ Weak password → rejected", () => {
-    expect(loginSchema.safeParse({ email: "a@b.com", password: "Ab1" }).success).toBe(false);
-    expect(loginSchema.safeParse({ email: "a@b.com", password: "a" }).success).toBe(false);
+  it("✅ Login accepts any existing password, ❌ empty rejected", () => {
+    expect(loginSchema.safeParse({ email: "a@b.com", password: "Ab1" }).success).toBe(true);
+    expect(loginSchema.safeParse({ email: "a@b.com", password: "" }).success).toBe(false);
   });
 
   it("❌ Token expiry → auto logout (session validation)", () => {
