@@ -40,9 +40,9 @@ describe("Authentication Tests", () => {
     expect(result).not.toContain("alert");
   });
 
-  it("❌ Weak password → rejected", () => {
+  it("✅ Login accepts any existing password, ❌ empty rejected", () => {
     expect(loginSchema.safeParse({ email: "a@b.com", password: "Ab1" }).success).toBe(true);
-    expect(loginSchema.safeParse({ email: "a@b.com", password: "a" }).success).toBe(false);
+    expect(loginSchema.safeParse({ email: "a@b.com", password: "" }).success).toBe(false);
   });
 
   it("❌ Token expiry → auto logout (session validation)", () => {
